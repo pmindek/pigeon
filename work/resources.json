@@ -3,7 +3,7 @@
     "path" : "shaders",
     "default files" : ["vs.txt"],
     "files" : { 
-      "shader" : "fs.txt",
+      "shader" : "fs.txt"
     }
   },
   

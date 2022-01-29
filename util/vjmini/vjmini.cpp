@@ -58,8 +58,7 @@ VJMini::VJMini(QObject *parent) : QObject(parent)
 
 VJMini::~VJMini()
 {
-	this->context->makeCurrent(this->onScreenSurface);
-	nn->glDeleteTextures(1, &depthTexture);
+
 }
 
 void VJMini::reloadScriptFile(QString fileName)

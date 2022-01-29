@@ -64,8 +64,6 @@ class VJMini : public QObject
 public:
 	NN *nn;
 
-	GLuint depthTexture;
-
 	explicit VJMini(QObject *parent = 0);
 	~VJMini();
 
