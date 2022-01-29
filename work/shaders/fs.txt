@@ -1,0 +1,9 @@
+uniform sampler2D tex0;
+uniform vec2 size;
+
+void main()
+{
+	vec2 uv = gl_FragCoord.xy/size.xy;
+	
+	gl_FragColor = vec4(1.0, 1.0, 0.6, 1.0);
+}

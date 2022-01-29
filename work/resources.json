@@ -1,0 +1,22 @@
+{          
+  "shaders" : {
+    "path" : "shaders",
+    "default files" : ["vs.txt"],
+    "files" : { 
+      "shader" : "fs.txt",
+    }
+  },
+  
+  "mappings" : {
+    "path" : "mappings",
+    "files" : {
+    }
+  },  
+  
+  "textures" : {
+    "path" : "textures",
+    "files" : {
+		"noise" : "noise.png"
+    }
+  }
+}  
