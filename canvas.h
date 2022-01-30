@@ -122,6 +122,8 @@ protected:
 	VJMini *vj;
 
 	//gameplay
+	quint64 timeOfDeath;
+	quint64 timeOfBirb;
 	qreal health;
 	qreal addedHealth;
 	QList<Crumb> crumbs;

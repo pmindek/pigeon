@@ -143,8 +143,10 @@ void Canvas::initializeGL()
 	time.start();
 
 	this->offset = 0.0;
-	health = 0.0;
+	health = 1.0;
 	addedHealth = 0.0;
+	timeOfDeath = 0;
+	timeOfBirb = 0;
 }
 
 void Canvas::resizeGL(int width, int height)
@@ -194,9 +196,9 @@ void Canvas::paintGL()
 	{
 		FMOD_Channel_SetVolume(channelBeat, 0.0);
 	}
-	else if (health > 0.4)
+	else if (health > 0.25)
 	{
-		FMOD_Channel_SetVolume(channelBeat, 1.0 - (health - 0.4) / 0.1);
+		FMOD_Channel_SetVolume(channelBeat, 1.0 - (health - 0.25) / 0.25);
 	}
 	else
 	{
@@ -427,8 +429,6 @@ void Canvas::paintGL()
 	//vj->shader("shader")->release();
 
 	offset = -pigeon->getX() + 8.0;
-
-	getCurrentNote();
 }
 
 int Canvas::getCurrentNote()
@@ -533,7 +533,32 @@ void Canvas::handleMovement(qint64 t)
 	}
 
 
-	health = qMin(1.0, qMax(0.0, 1.0 - (qreal) t / 10000.0 + addedHealth));
+	if (timeOfDeath <= 0)
+	{
+		//birb
+		health = qMin(1.0, qMax(0.0, 1.0 - (qreal) (t - timeOfBirb) / 10000.0 + addedHealth));
+
+		if (health == 0.0)
+		{
+			timeOfBirb = 0;
+			timeOfDeath = t;
+			addedHealth = 0.0;
+		}
+	}
+	else
+	{
+		//man
+		qreal healing = (qreal) (t - timeOfDeath) / 10000.0;
+
+		health = qMin(1.0, qMax(0.0, healing - addedHealth));
+
+		if (health == 1.0)
+		{
+			timeOfDeath = 0;
+			timeOfBirb = t;
+			addedHealth = 0.0;
+		}
+	}
 }
 
 
