@@ -1,0 +1,29 @@
+uniform mat4 modelview;
+uniform mat4 projection;
+
+varying vec4 pos3D;
+
+varying vec3 light, normal, eye, v;
+
+varying vec2 uv;
+
+varying vec4 color;
+                   
+void main()
+{
+  mat4 inv = inverse(modelview);
+
+  light = (inv * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  //light = (inv * vec4(0.0, 0.0, 0.0, 0.0)).xyz;
+  
+  normal = normalize(gl_NormalMatrix * gl_Normal);
+  uv = gl_MultiTexCoord0;
+  v = vec3(gl_Vertex);
+  
+  eye = vec3(inv * vec4(0.0, 0.0, 0.0, 1));
+  //eye = (modelview * vec4(0.0, 0.0, 0.0, 1)).xyz;                          
+    
+  pos3D = projection * modelview * gl_Vertex; 
+  gl_Position = pos3D;
+  color = gl_Color;
+}

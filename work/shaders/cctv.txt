@@ -1,0 +1,80 @@
+uniform sampler2D tex0;
+float amount = 100.0;
+float lineAmount = 100.0;
+
+uniform int time;
+
+
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+float rand(uint value)
+{
+	return float(wang_hash(value)) * (1.0 / 4294967296.0);
+}
+
+
+void main(void)
+{
+  float diAnim = mod(-time / 1000.0, 1.0); 
+  //float diAnim = time;
+
+  //gl_FragData[0] = vec4(diAnim,0,0,1); return;
+
+  float diOffset = lineAmount;  
+  float diRadius = 0.3;
+  float diPosition = -diRadius + diAnim * (1.0 + diRadius * 2.0 + 0.4);
+  
+  float diStart = diPosition - diRadius;
+  float diEnd = diPosition + diRadius;
+  float diZo = (gl_TexCoord[0].t - diStart) / (diEnd - diStart);
+
+ 
+  /*vec2 coord = gl_TexCoord[0].st;
+  
+  if (gl_TexCoord[0].t > diStart && gl_TexCoord[0].t < diEnd)
+  {    
+    coord = vec2(mod(gl_TexCoord[0].s + diOffset * 0.5 * (1 - cos(diZo * 2.0 * 3.141592654)),1), gl_TexCoord[0].t);
+  } */
+  
+  vec2 coord = gl_TexCoord[0].st;
+
+  float da0 = mod(-time / 100000.0 * 11,1.0); 
+  float da1 = mod(time / 100000.0 * 6,1.0); 
+  float da2 = mod(time / 100000.0 * 10,1.0); 
+  float da3 = mod(time / 100000.0 * 4,1.0); 
+
+
+  coord = vec2(
+  mod(
+      gl_TexCoord[0].s 
+          + 0.001 * sin((gl_TexCoord[0].t + da0) * 2.0 * 2.0 * 3.141592654)
+          + 0.0005 * sin((gl_TexCoord[0].t + da1) * 6.0 * 2.0 * 3.141592654)
+      
+      ,1.0),
+  
+  
+  mod(
+      gl_TexCoord[0].t 
+          + 0.001 * sin((gl_TexCoord[0].s + da2) * 3.0 * 2.0 * 3.141592654)
+          + 0.0005 * sin((gl_TexCoord[0].s + da3) * 6.0 * 2.0 * 3.141592654)
+      
+      ,1.0)
+  
+  //diOffset * 0.5 * (1 - cos(diZo * 2.0 * 3.141592654)),1), gl_TexCoord[0].t
+  
+  
+  );
+  
+  
+	vec4 texel = texture2D(tex0, coord);
+
+	gl_FragData[0] = texel;
+}

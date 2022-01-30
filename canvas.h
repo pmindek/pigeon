@@ -29,6 +29,7 @@
 #define B  11
 
 #define DULL 12
+#define MAN 24
 
 #define GAME_LENGTH 1000
 #define GAME_CRUMB_COUNT 1200
@@ -93,8 +94,15 @@ protected:
 	void keyPressEvent(QKeyEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
 
+	int realityCounter = 0;
+
 	inline bool isMan()
 	{
+		if (realityCounter > 0)
+		{
+			return (timeOfDeath <= 0);
+		}
+
 		return timeOfDeath > 0;
 	}
 
@@ -102,6 +110,8 @@ protected:
 	{
 		return (isMan() ? "-m" : "");
 	}
+
+	bool healthFreeze = true;
 
 	int w, h;
 	bool horizontalStripes;
@@ -135,9 +145,16 @@ protected:
 	qreal lifeLength;
 	quint64 timeOfDeath;
 	quint64 timeOfBirb;
+
+	quint64 ptmAmountFade;
+	quint64 mtpAmountFade;
+
 	qreal health;
 	qreal addedHealth;
 	QList<Crumb> crumbs;
+
+	qreal ptmAmount;
+	qreal mtpAmount;
 
 	//sounds
 	FMOD_SYSTEM      *system;
@@ -157,7 +174,9 @@ protected:
 	FMOD_CHANNEL     *noteChannel;
 
 	FMOD_SOUND       *sounds[1];
-	FMOD_SOUND       *notes[24];
+	FMOD_SOUND       *notes[36];
+	FMOD_SOUND		 *ptm;
+	FMOD_SOUND		 *mtp;
 
 	FMOD_SOUNDGROUP  *soundgroup;
 

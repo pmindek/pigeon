@@ -35,8 +35,11 @@ void Canvas::initializeGL()
 
 	this->vj->loadScript("script.json");
 
-	this->post //<< this->vj->shader("vision")
+	this->post << this->vj->shader("cctv")
 			   << this->vj->shader("chroma")
+			   << this->vj->shader("ease")
+			   << this->vj->shader("hard")
+			   << this->vj->shader("vision")
 				  ;
 
 
@@ -75,7 +78,7 @@ void Canvas::initializeGL()
 	noteChannel = 0;
 
 	FMOD_System_Create(&system);
-	FMOD_System_Init(system, 5, FMOD_INIT_NORMAL, NULL);
+	FMOD_System_Init(system, 16, FMOD_INIT_NORMAL, NULL);
 
 
 	//notes
@@ -84,11 +87,11 @@ void Canvas::initializeGL()
 	noteNames << "c" << "cs" << "d" << "ds" << "e" << "f" << "fs" << "g" << "gs" << "a" << "as" << "b";
 
 	QStringList noteModifiers;
-	noteModifiers << "" << "-";
+	noteModifiers << "" << "-" << "--";
 
-	for (int j = 0; j < 2; j++)
+	for (int j = 0; j < noteModifiers.count(); j++)
 	{
-		for (int i = 0; i < 12; i++)
+		for (int i = 0; i < noteNames.count(); i++)
 		{
 			int noteId = 12 * j + i;
 
@@ -97,6 +100,10 @@ void Canvas::initializeGL()
 		}
 	}
 
+	FMOD_System_CreateSound(system, "music/pigeon-to-man.wav", FMOD_SOFTWARE, 0, &ptm);
+	FMOD_Sound_SetMode(ptm, FMOD_LOOP_OFF);
+	FMOD_System_CreateSound(system, "music/man-to-pigeon.wav", FMOD_SOFTWARE, 0, &mtp);
+	FMOD_Sound_SetMode(mtp, FMOD_LOOP_OFF);
 
 
 	/*FMOD_System_CreateSound(system, "hit.wav", FMOD_SOFTWARE, 0, &hitSound);
@@ -129,6 +136,8 @@ void Canvas::initializeGL()
 	{
 		FMOD_Sound_SetSoundGroup(notes[i], soundgroup);
 	}
+	FMOD_Sound_SetSoundGroup(ptm, soundgroup);
+	FMOD_Sound_SetSoundGroup(mtp, soundgroup);
 
 	/*FMOD_Sound_SetSoundGroup(highSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(hitSound, soundgroup);
@@ -136,9 +145,11 @@ void Canvas::initializeGL()
 	FMOD_Sound_SetSoundGroup(creepSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(againSound, soundgroup);*/
 
+	FMOD_Channel_SetVolume(channelPigeon, 1.0);
+	FMOD_System_Update(system);
 	FMOD_Channel_SetVolume(channelMan, 0.0);
 	FMOD_System_Update(system);
-	FMOD_Channel_SetVolume(channelBeat, 0.0);
+	FMOD_Channel_SetVolume(channelBeat, 1.0);
 	FMOD_System_Update(system);
 	FMOD_Channel_SetVolume(channelArp, 0.0);
 	FMOD_System_Update(system);
@@ -160,6 +171,9 @@ void Canvas::initializeGL()
 	addedHealth = 0.0;
 	timeOfDeath = 0;
 	timeOfBirb = 0;
+
+	ptmAmount = 0.0;
+	mtpAmount = 0.0;
 
 	this->lifeLength = this->vj->cr("life") * 1000.0;
 }
@@ -200,40 +214,63 @@ void Canvas::resizeGL(int width, int height)
 
 void Canvas::paintGL()
 {
+	if (realityCounter > 0)
+	{
+		realityCounter--;
+	}
+
+	if (health < 0.2)
+	{
+		qreal zo = health / 0.2;
+
+		if (NNU::random() > pow(zo, 0.1))
+		{
+			realityCounter = timeOfDeath > 0 ? 3 : 6;
+		}
+	}
+
+
+
 	qint64 t = time.elapsed();
 
 	handleMovement(t);
 
 
 	FMOD_Channel_SetVolume(channelArp, pow(1.0 - this->health, 2.0));
+	FMOD_System_Update(system);
 
 
 	if (isMan())
 	{
 		FMOD_Channel_SetVolume(channelPigeon, 0);
+		FMOD_System_Update(system);
 		FMOD_Channel_SetVolume(channelMan, pow(1.0 - this->health, 0.25));
+		FMOD_System_Update(system);
 	}
 	else
 	{
-		FMOD_Channel_SetVolume(channelPigeon, pow(this->health, 0.5));
+		FMOD_Channel_SetVolume(channelPigeon, pow(this->health, 0.25));
+		FMOD_System_Update(system);
 		FMOD_Channel_SetVolume(channelMan, 0);
+		FMOD_System_Update(system);
 	}
 
 
 	if (health > 0.5)
 	{
 		FMOD_Channel_SetVolume(channelBeat, 0.0);
+		FMOD_System_Update(system);
 	}
 	else if (health > 0.25)
 	{
 		FMOD_Channel_SetVolume(channelBeat, 1.0 - (health - 0.25) / 0.25);
+		FMOD_System_Update(system);
 	}
 	else
 	{
 		FMOD_Channel_SetVolume(channelBeat, 1.0);
+		FMOD_System_Update(system);
 	}
-
-	FMOD_System_Update(system);
 
 
 	glMatrixMode(GL_PROJECTION);
@@ -284,26 +321,45 @@ void Canvas::paintGL()
 	//houses
 	glEnable(GL_TEXTURE_2D);
 
+
 	glBindTexture(GL_TEXTURE_2D, vj->texture("bg hills" + man()));
 	glBegin(GL_QUADS);
 		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 0.0);
-		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 0.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 2.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 2.0);
 
 		glColor4f(1.0, 1.0, 1.0, 1.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.0); glVertex2f(16.89, 10.0 - 2.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.0); glVertex2f(-0.89, 10.0 - 2.0);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_QUADS);
+		if (isMan())
+		{
+			glColor4f(63.0 / 255.0, 63.0 / 255.0, 63.0 / 255.0, 1.0);
+		}
+		else
+		{
+			glColor4f(65.0 / 255.0, 149.0 / 255.0, 68.0 / 255.0, 1.0);
+		}
+
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.99); glVertex2f(-0.89, 10.0 - 3.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.99); glVertex2f(16.89, 10.0 - 3.0);
 		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.0); glVertex2f(16.89, 10.0 - 0.0);
 		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.0); glVertex2f(-0.89, 10.0 - 0.0);
 	glEnd();
 
+	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, vj->texture("bg houses" + man()));
 	glBegin(GL_QUADS);
 		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 1.0);
-		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 1.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 2.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 2.0);
 
 		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.0); glVertex2f(16.89, 10.0 - 1.0);
-		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.0); glVertex2f(-0.89, 10.0 - 1.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.0); glVertex2f(16.89, 10.0 - 2.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.0); glVertex2f(-0.89, 10.0 - 2.0);
 	glEnd();
 
 
@@ -322,12 +378,11 @@ void Canvas::paintGL()
 
 	glEnable(GL_TEXTURE_2D);
 
-	{
+	/*{
 	int value;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &value);
 	qDebug() << value;
-	}
-
+	}*/
 	//breadcrumbs
 	for (int i = 0; i < this->crumbs.size(); i++)
 	{
@@ -354,7 +409,6 @@ void Canvas::paintGL()
 	}
 
 
-
 	//draw pigeon
 	GLuint pigeonTextures[2] = {vj->texture("pigeon0" + man()), vj->texture("pigeon1" + man())};
 
@@ -364,6 +418,8 @@ void Canvas::paintGL()
 	{
 		pigeonTexture = pigeonTextures[(t % 300) / 150 ];
 	}
+
+	//qDebug() << pigeonTexture << isMan();
 
 	glBindTexture(GL_TEXTURE_2D, pigeonTexture);
 
@@ -430,19 +486,38 @@ void Canvas::paintGL()
 		vj->nn->fbo(counter % 2)->bind();
 
 		shader->bind();
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, counter == 0 ? vj->nn->fbo("main")->texture() : vj->nn->fbo(1 - counter % 2)->texture());
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, vj->texture("noise"));
+		glActiveTexture(GL_TEXTURE0);
 
 		shader->getShader()->setUniformValue("tex0", 0);
 		shader->getShader()->setUniformValue("size", QVector2D(this->w, this->h));
 
 		switch (counter)
 		{
-		case 0:
-			shader->getShader()->setUniformValue("run", (GLfloat) this->run);
+		case 4:
+			shader->getShader()->setUniformValue("run", /*(GLfloat) this->run*/ isMan() ? 0.9f : 2.0f);
+			break;
+		case 3:
+			shader->getShader()->setUniformValue("amount", (GLfloat) mtpAmount);
+			shader->getShader()->setUniformValue("time", (uint) t);
+			shader->getShader()->setUniformValue("noiseTex", 1);
+			break;
+		case 2:
+			shader->getShader()->setUniformValue("amount", (GLfloat) ptmAmount);
+			shader->getShader()->setUniformValue("time", (uint) t);
+			shader->getShader()->setUniformValue("noiseTex", 1);
 			break;
 		case 1:
 			shader->getShader()->setUniformValue("time", (uint) t);
 			shader->getShader()->setUniformValue("amount", 12.0f);
+			break;
+		case 0:
+			shader->getShader()->setUniformValue("time", (uint) t);
+			shader->getShader()->setUniformValue("amount", 1.0f);
+			shader->getShader()->setUniformValue("lineAmount", 1.0f);
 			break;
 		}
 
@@ -477,9 +552,16 @@ void Canvas::paintGL()
 	glEnd();
 
 
+	vj->shader("healthbar")->bind();
+	modelview.setToIdentity();
+	vj->shader("healthbar")->getShader()->setUniformValue("modelview", modelview);
+	vj->shader("healthbar")->getShader()->setUniformValue("projection", projection);
+	vj->shader("healthbar")->getShader()->setUniformValue("pass", 1);
+
 	//healthbar
 	qreal healthbarSize = 10;
 
+	glColor4f(1,1,1,1);
 	glBindTexture(GL_TEXTURE_2D, this->vj->texture("healthbar-shadow"));
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0);
@@ -488,11 +570,9 @@ void Canvas::paintGL()
 		glTexCoord2f(0.0, 0.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0 + healthbarSize / 8.0);
 	glEnd();
 
-	vj->shader("healthbar")->bind();
-	modelview.setToIdentity();
-	vj->shader("healthbar")->getShader()->setUniformValue("modelview", modelview);
-	vj->shader("healthbar")->getShader()->setUniformValue("projection", projection);
+
 	vj->shader("healthbar")->getShader()->setUniformValue("health", (GLfloat) health);
+	vj->shader("healthbar")->getShader()->setUniformValue("pass", 0);
 
 	glBindTexture(GL_TEXTURE_2D, this->vj->texture("healthbar"));
 	glBegin(GL_QUADS);
@@ -590,7 +670,7 @@ void Canvas::handleMovement(qint64 t)
 				}
 			}
 
-			FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, notes[getCurrentNote() + (success ? 0 : DULL)], 0, &noteChannel);
+			FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, notes[getCurrentNote() + (success ? (isMan() ? MAN : 0) : DULL)], 0, &noteChannel);
 			FMOD_System_Update(system);
 		}
 	}
@@ -617,11 +697,27 @@ void Canvas::handleMovement(qint64 t)
 		//birb
 		health = qMin(1.0, qMax(0.0, 1.0 - (qreal) (t - timeOfBirb) / lifeLength + addedHealth));
 
+		if (healthFreeze)
+		{
+			health = 1.0;
+		}
+
+		if (health < 0.05)
+		{
+			ptmAmount = 1.0 - health / 0.05;
+		}
+
 		if (health == 0.0)
 		{
 			timeOfBirb = 0;
 			timeOfDeath = t;
 			addedHealth = 0.0;
+
+			FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, ptm, 0, &noteChannel);
+			FMOD_System_Update(system);
+
+			ptmAmount = 1.0;
+			ptmAmountFade = t;
 		}
 	}
 	else
@@ -631,11 +727,44 @@ void Canvas::handleMovement(qint64 t)
 
 		health = qMin(1.0, qMax(0.0, healing - addedHealth));
 
+		if (health > 0.95)
+		{
+			mtpAmount = (health - 0.95) / 0.05;
+		}
+
 		if (health == 1.0)
 		{
 			timeOfDeath = 0;
 			timeOfBirb = t;
 			addedHealth = 0.0;
+
+			FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, mtp, 0, &noteChannel);
+			FMOD_System_Update(system);
+
+			mtpAmount = 1.0;
+			mtpAmountFade = t;
+		}
+	}
+
+	if (ptmAmountFade > 0)
+	{
+		ptmAmount = 1.0 - (qreal) (t - ptmAmountFade) / 1000.0;
+
+		if (ptmAmount <= 0)
+		{
+			ptmAmount = 0.0;
+			ptmAmountFade = 0;
+		}
+	}
+
+	if (mtpAmountFade > 0)
+	{
+		mtpAmount = 1.0 - (qreal) (t - mtpAmountFade) / 1000.0;
+
+		if (mtpAmount <= 0)
+		{
+			mtpAmount = 0.0;
+			mtpAmountFade = 0;
 		}
 	}
 }
@@ -700,6 +829,11 @@ void Canvas::keyPressEvent(QKeyEvent *e)
 	{
 	case Qt::Key_Escape:
 		emit kill();
+	break;
+
+	case Qt::Key_H:
+		healthFreeze = !healthFreeze;
+		timeOfBirb = time.elapsed();
 	break;
 
 	case Qt::Key_Left:

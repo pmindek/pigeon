@@ -1,7 +1,7 @@
 {
   "crumb offset" : 1.4,
   "crumb offset pigeon" : 0.7,
-  "crumb range" : 0.3,
+  "crumb range" : 0.4,
   
   "life" : 16,
   "health increment" : 0.03,

@@ -6,6 +6,9 @@
       "vision" : "vision.txt",
 	  "peck" : ["peck_vs.txt", "peck_fs.txt"],
 	  "healthbar" : ["peck_vs.txt", "healthbar_fs.txt"],
+	  "cctv" : "cctv.txt",
+	  "ease" : ["vs.txt", "ease-alpha.txt"],
+	  "hard" : ["vs.txt", "hard-alpha.txt"],
 	  "chroma" : "chroma.txt"
     }
   },

@@ -3,6 +3,7 @@
 uniform sampler2D tex0;
 uniform vec2 size;
 uniform float health;
+uniform int pass;
 
 varying vec2 uv;
 varying vec4 color;
@@ -71,6 +72,11 @@ void main()
 			
 			texel.a);
 	}	
+	
+	if (pass == 1)
+	{
+		output = texel;
+	}
 }
 
 
