@@ -9,7 +9,7 @@ class One : public Moveable
 {
 public:
 	One(QOpenGLFunctions_2_0 *gl);
-	void display(GLfloat offset, GLuint texture);
+	void display(GLfloat offset, GLuint texture, bool isMan);
 
 	void setRight(bool right);
 	void setLastX(GLfloat lastX);

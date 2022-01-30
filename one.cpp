@@ -15,7 +15,7 @@ One::One(QOpenGLFunctions_2_0 *gl)
 	//this->y = 1.0;
 }
 
-void One::display(GLfloat offset, GLuint texture)
+void One::display(GLfloat offset, GLuint texture, bool isMan)
 {
 	size = 4.0;
 	alpha = 1.0;
@@ -37,7 +37,7 @@ void One::display(GLfloat offset, GLuint texture)
 
 	gl->glColor4f(1.0, 1.0, 1.0, 1.0);
 
-	qreal voffset = -0.45;
+	qreal voffset = isMan ? -0.3 : -0.45;
 
 	if (right)
 	{
@@ -45,8 +45,8 @@ void One::display(GLfloat offset, GLuint texture)
 		{
 			gl->glBindTexture(GL_TEXTURE_2D, texture);
 			gl->glBegin(GL_QUADS);
-				gl->glTexCoord2f(0.0, 1.0); gl->glVertex2f(-size / 2.0, - size + voffset);
-				gl->glTexCoord2f(1.0, 1.0); gl->glVertex2f(+size / 2.0, - size + voffset);
+				gl->glTexCoord2f(0.0, 1.0); gl->glVertex2f(-size / 2.0, - size * (isMan ? 2.0 : 1.0) + voffset);
+				gl->glTexCoord2f(1.0, 1.0); gl->glVertex2f(+size / 2.0, - size * (isMan ? 2.0 : 1.0) + voffset);
 				gl->glTexCoord2f(1.0, 0.0); gl->glVertex2f(+size / 2.0, 0.0 + voffset);
 				gl->glTexCoord2f(0.0, 0.0); gl->glVertex2f(-size / 2.0, 0.0 + voffset);
 			gl->glEnd();
@@ -58,8 +58,8 @@ void One::display(GLfloat offset, GLuint texture)
 		{
 			gl->glBindTexture(GL_TEXTURE_2D, texture);
 			gl->glBegin(GL_QUADS);
-				gl->glTexCoord2f(1.0, 1.0); gl->glVertex2f(-size / 2.0, - size + voffset);
-				gl->glTexCoord2f(0.0, 1.0); gl->glVertex2f(+size / 2.0, - size + voffset);
+				gl->glTexCoord2f(1.0, 1.0); gl->glVertex2f(-size / 2.0, - size * (isMan ? 2.0 : 1.0) + voffset);
+				gl->glTexCoord2f(0.0, 1.0); gl->glVertex2f(+size / 2.0, - size * (isMan ? 2.0 : 1.0) + voffset);
 				gl->glTexCoord2f(0.0, 0.0); gl->glVertex2f(+size / 2.0, 0.0 + voffset);
 				gl->glTexCoord2f(1.0, 0.0); gl->glVertex2f(-size / 2.0, 0.0 + voffset);
 			gl->glEnd();

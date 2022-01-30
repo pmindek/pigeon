@@ -9,7 +9,10 @@ Canvas::Canvas(QWidget *parent) : QOpenGLWidget(parent)
 Canvas::~Canvas()
 {
 	FMOD_Sound_Release(songCalm);
+	FMOD_Sound_Release(songPigeon);
+	FMOD_Sound_Release(songMan);
 	FMOD_Sound_Release(songBeat);
+	FMOD_Sound_Release(songArp);
 
 	FMOD_System_Close(system);
 	FMOD_System_Release(system);
@@ -32,7 +35,7 @@ void Canvas::initializeGL()
 
 	this->vj->loadScript("script.json");
 
-	this->post << this->vj->shader("vision")
+	this->post //<< this->vj->shader("vision")
 			   << this->vj->shader("chroma")
 				  ;
 
@@ -65,6 +68,8 @@ void Canvas::initializeGL()
 
 	//sound
 	channelCalm = 0;
+	channelPigeon = 0;
+	channelMan = 0;
 	channelBeat = 0;
 	channelArp = 0;
 	noteChannel = 0;
@@ -107,12 +112,16 @@ void Canvas::initializeGL()
 	FMOD_Sound_SetMode(againSound, FMOD_LOOP_OFF);*/
 
 	FMOD_System_CreateStream(system, "music/pigeon-calm.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songCalm);
+	FMOD_System_CreateStream(system, "music/pigeon-pigeon.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songPigeon);
+	FMOD_System_CreateStream(system, "music/pigeon-man.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songMan);
 	FMOD_System_CreateStream(system, "music/pigeon-beat.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songBeat);
 	FMOD_System_CreateStream(system, "music/pigeon-arp.wav",  FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songArp);
 
 
 	FMOD_System_CreateSoundGroup(system, "All", &soundgroup);
 	FMOD_Sound_SetSoundGroup(songCalm, soundgroup);
+	FMOD_Sound_SetSoundGroup(songPigeon, soundgroup);
+	FMOD_Sound_SetSoundGroup(songMan, soundgroup);
 	FMOD_Sound_SetSoundGroup(songBeat, soundgroup);
 	FMOD_Sound_SetSoundGroup(songArp, soundgroup);
 
@@ -127,12 +136,16 @@ void Canvas::initializeGL()
 	FMOD_Sound_SetSoundGroup(creepSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(againSound, soundgroup);*/
 
+	FMOD_Channel_SetVolume(channelMan, 0.0);
+	FMOD_System_Update(system);
 	FMOD_Channel_SetVolume(channelBeat, 0.0);
 	FMOD_System_Update(system);
 	FMOD_Channel_SetVolume(channelArp, 0.0);
 	FMOD_System_Update(system);
 
 	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songCalm, 0, &channelCalm);
+	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songPigeon, 0, &channelPigeon);
+	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songMan, 0, &channelMan);
 	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songBeat, 0, &channelBeat);
 	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songArp, 0, &channelArp);
 
@@ -147,6 +160,8 @@ void Canvas::initializeGL()
 	addedHealth = 0.0;
 	timeOfDeath = 0;
 	timeOfBirb = 0;
+
+	this->lifeLength = this->vj->cr("life") * 1000.0;
 }
 
 void Canvas::resizeGL(int width, int height)
@@ -190,7 +205,20 @@ void Canvas::paintGL()
 	handleMovement(t);
 
 
-	FMOD_Channel_SetVolume(channelArp, pow(1.0 - this->health, 3.0));
+	FMOD_Channel_SetVolume(channelArp, pow(1.0 - this->health, 2.0));
+
+
+	if (isMan())
+	{
+		FMOD_Channel_SetVolume(channelPigeon, 0);
+		FMOD_Channel_SetVolume(channelMan, pow(1.0 - this->health, 0.25));
+	}
+	else
+	{
+		FMOD_Channel_SetVolume(channelPigeon, pow(this->health, 0.5));
+		FMOD_Channel_SetVolume(channelMan, 0);
+	}
+
 
 	if (health > 0.5)
 	{
@@ -229,12 +257,53 @@ void Canvas::paintGL()
 
 	//background
 	glDisable(GL_TEXTURE_2D);
-	glColor4f(0.8, 0.82, 0.86, 1);
 	glBegin(GL_QUADS);
+		if (isMan())
+		{
+			glColor4f(0.42, 0.45, 0.5, 1);
+		}
+		else
+		{
+			glColor4f(0.72, 0.8, 1.0, 1);
+		}
 		glVertex2f(-0.89, 0.0);
 		glVertex2f(16.89, 0.0);
-		glVertex2f(16.89, 10.0);
-		glVertex2f(-0.89, 10.0);
+
+		if (isMan())
+		{
+			glColor4f(0.19, 0.3, 0.23, 1);
+		}
+		else
+		{
+			glColor4f(1.0, 1.0, 1.0, 1);
+		}
+		glVertex2f(16.89, 6.0);
+		glVertex2f(-0.89, 6.0);
+	glEnd();
+
+	//houses
+	glEnable(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, vj->texture("bg hills" + man()));
+	glBegin(GL_QUADS);
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 0.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 0.0);
+
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.1, 0.0); glVertex2f(16.89, 10.0 - 0.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.1, 0.0); glVertex2f(-0.89, 10.0 - 0.0);
+	glEnd();
+
+	glBindTexture(GL_TEXTURE_2D, vj->texture("bg houses" + man()));
+	glBegin(GL_QUADS);
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.99); glVertex2f(-0.89, 10.0 - 8.0 - 1.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.99); glVertex2f(16.89, 10.0 - 8.0 - 1.0);
+
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		glTexCoord2f(0.5 - (offset / 17.78) * 0.2, 0.0); glVertex2f(16.89, 10.0 - 1.0);
+		glTexCoord2f(0.0 - (offset / 17.78) * 0.2, 0.0); glVertex2f(-0.89, 10.0 - 1.0);
 	glEnd();
 
 
@@ -242,7 +311,7 @@ void Canvas::paintGL()
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
-	glBindTexture(GL_TEXTURE_2D, vj->texture("bg sidewalk"));
+	glBindTexture(GL_TEXTURE_2D, vj->texture("bg sidewalk" + man()));
 	glBegin(GL_QUADS);
 		glTexCoord2f(1.3 - (offset / 17.78) * 2.5, 0.99); glVertex2f(-0.89, 10.0 - 1.2);
 		glTexCoord2f(3.8 - (offset / 17.78) * 2.5, 0.99); glVertex2f(16.89, 10.0 - 1.2);
@@ -253,11 +322,16 @@ void Canvas::paintGL()
 
 	glEnable(GL_TEXTURE_2D);
 
+	{
+	int value;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &value);
+	qDebug() << value;
+	}
 
 	//breadcrumbs
 	for (int i = 0; i < this->crumbs.size(); i++)
 	{
-		glBindTexture(GL_TEXTURE_2D, this->vj->texture("crumb" + QString::number(this->crumbs[i].type)));
+		glBindTexture(GL_TEXTURE_2D, this->vj->texture("crumb" + QString::number(this->crumbs[i].type) + man()));
 
 		qreal x = this->crumbs[i].position + offset;
 		qreal y = 9.0;
@@ -265,7 +339,7 @@ void Canvas::paintGL()
 
 		if (this->crumbs[i].isInRange(pigeon->getX(), pigeon->isRight()))
 		{
-			glColor4f(1.0, 0.9, 0.9, 1.0);
+			glColor4f(1.0, 0.8, 0.8, 1.0);
 		} else
 		{
 			glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -282,7 +356,7 @@ void Canvas::paintGL()
 
 
 	//draw pigeon
-	GLuint pigeonTextures[2] = {vj->texture("pigeon0"), vj->texture("pigeon1")};
+	GLuint pigeonTextures[2] = {vj->texture("pigeon0" + man()), vj->texture("pigeon1" + man())};
 
 	GLuint pigeonTexture = pigeonTextures[0];
 
@@ -300,7 +374,7 @@ void Canvas::paintGL()
 	vj->shader("peck")->bind();
 	vj->shader("peck")->getShader()->setUniformValue("modelview", modelview);
 	vj->shader("peck")->getShader()->setUniformValue("projection", projection);
-	vj->shader("peck")->getShader()->setUniformValue("time", (GLfloat) pigeon->getPeck());
+	vj->shader("peck")->getShader()->setUniformValue("time", isMan() ? 0.0f : (GLfloat) pigeon->getPeck());
 
 	/*glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 0.0); glVertex2f( 6.0, 9.0 + 0.45);
@@ -309,7 +383,12 @@ void Canvas::paintGL()
 		glTexCoord2f(0.0, 1.0); glVertex2f( 6.0, 5.0 + 0.45);
 	glEnd();*/
 
-	pigeon->display(offset, pigeonTexture);
+	if (pigeon->getPeck() > 0.0 && isMan())
+	{
+		pigeonTexture = vj->texture("pigeon2-m");
+	}
+
+	pigeon->display(offset, pigeonTexture, isMan());
 
 	vj->shader("peck")->release();
 
@@ -536,7 +615,7 @@ void Canvas::handleMovement(qint64 t)
 	if (timeOfDeath <= 0)
 	{
 		//birb
-		health = qMin(1.0, qMax(0.0, 1.0 - (qreal) (t - timeOfBirb) / 10000.0 + addedHealth));
+		health = qMin(1.0, qMax(0.0, 1.0 - (qreal) (t - timeOfBirb) / lifeLength + addedHealth));
 
 		if (health == 0.0)
 		{
@@ -548,7 +627,7 @@ void Canvas::handleMovement(qint64 t)
 	else
 	{
 		//man
-		qreal healing = (qreal) (t - timeOfDeath) / 10000.0;
+		qreal healing = (qreal) (t - timeOfDeath) / lifeLength;
 
 		health = qMin(1.0, qMax(0.0, healing - addedHealth));
 

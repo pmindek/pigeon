@@ -22,15 +22,30 @@
 		"pigeon0" : "pigeon0.png",
 		"pigeon1" : "pigeon1.png",
 
+		"pigeon0-m" : "pigeon0-m.png",
+		"pigeon1-m" : "pigeon1-m.png",
+		"pigeon2-m" : "pigeon2-m.png",
+
 		"healthbar-shadow" : "healthbar-shadow.png",
 		"healthbar" : "healthbar.png",
 
 		"crumb0" : "crumb0.png",
 		"crumb1" : "crumb1.png",
 		"crumb2" : "crumb2.png",
+
+		"crumb0-m" : "crumb0-m.png",
+		"crumb1-m" : "crumb1-m.png",
+		"crumb2-m" : "crumb2-m.png",
 		
 		
 		"bg sidewalk" : "background/sidewalk.png",
+		"bg sidewalk-m" : "background/sidewalk-m.png",
+
+		"bg houses" : "background/houses.png",
+		"bg houses-m" : "background/houses-m.png",
+
+		"bg hills" : "background/hills.png",
+		"bg hills-m" : "background/hills-m.png",
 		
 		"noise" : "noise.png"
     }

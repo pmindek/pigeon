@@ -59,7 +59,7 @@ void main()
 
 	if (uv.x > health)
 	{
-		output = vec4(mix(dc, dcd, danger), texel.a * 0.2);
+		output = vec4(mix(dc, dcd, danger), texel.a * 0.4);
 	}
 	else
 	{

@@ -61,8 +61,8 @@ public:
 
 	int period = 1200;
 
-	qreal minSize = 0.7;
-	qreal maxSize = 1.0;
+	qreal minSize = 0.8;
+	qreal maxSize = 1.1;
 
 	qreal phase;
 
@@ -93,6 +93,16 @@ protected:
 	void keyPressEvent(QKeyEvent *e);
 	void keyReleaseEvent(QKeyEvent *e);
 
+	inline bool isMan()
+	{
+		return timeOfDeath > 0;
+	}
+
+	inline QString man()
+	{
+		return (isMan() ? "-m" : "");
+	}
+
 	int w, h;
 	bool horizontalStripes;
 
@@ -122,6 +132,7 @@ protected:
 	VJMini *vj;
 
 	//gameplay
+	qreal lifeLength;
 	quint64 timeOfDeath;
 	quint64 timeOfBirb;
 	qreal health;
@@ -132,10 +143,14 @@ protected:
 	FMOD_SYSTEM      *system;
 
 	FMOD_SOUND       *songCalm;
+	FMOD_SOUND       *songPigeon;
+	FMOD_SOUND       *songMan;
 	FMOD_SOUND       *songBeat;
 	FMOD_SOUND       *songArp;
 
 	FMOD_CHANNEL     *channelCalm;
+	FMOD_CHANNEL     *channelPigeon;
+	FMOD_CHANNEL     *channelMan;
 	FMOD_CHANNEL     *channelBeat;
 	FMOD_CHANNEL     *channelArp;
 
