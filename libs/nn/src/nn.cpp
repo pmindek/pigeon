@@ -4,9 +4,8 @@
 
 NN::NN(QObject *parent) : QObject(parent)
 {
-	versionYear = 2018;
+	versionYear = 2022;
 	versionBuild = 1;
-
 
 	dumpFbosCounter = 0;
 }

@@ -78,7 +78,7 @@ public:
 
 		//texture->allocateStorage(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8);
 		texture->setData(image);*/
-		QOpenGLTexture *texture = new QOpenGLTexture(image);
+		QOpenGLTexture *texture = new QOpenGLTexture(image.mirrored());
 		texture->setMagnificationFilter(QOpenGLTexture::Linear);
 		texture->setMinificationFilter(QOpenGLTexture::Linear);
 
@@ -122,8 +122,8 @@ public slots:
 			QString key = this->resources.getKeyFromFileName(fileName);
 			QOpenGLTexture *texture = VPointer<QOpenGLTexture>::toPointer(this->resources[key]);
 
-			//texture->destroy();
-			texture->setData(image);
+			texture->destroy();
+			texture->setData(image.mirrored());
 
 			emit resourceUpdated();
 		}

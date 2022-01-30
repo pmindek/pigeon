@@ -1,0 +1,27 @@
+uniform sampler2D tex0;
+uniform float inner;
+uniform float outer;
+uniform float amount;
+uniform vec3 color;
+
+bool vr = false;
+void main(void)
+{
+	vec2 uv =  gl_TexCoord[0].st;
+	vec4 texel = texture2D(tex0, uv);
+
+	float distance = 0.0;	
+	if (vr)
+	{
+		uv.x = (2.0 * uv.x); float side = sign(uv.x - 1.0);	
+		distance = length(gl_TexCoord[0].st - vec2(0.25 + 0.25 * (1.0 + side), 0.5)) * 2.0;
+	}
+	else
+	{
+		distance = length(gl_TexCoord[0].st - vec2(0.5, 0.5)) * 2.0;
+	}
+	
+	float vig = smoothstep(outer, inner, distance);
+
+	gl_FragData[0] = vec4(mix(texel.rgb, color, (1.0 - vig) * amount), texel.a);
+}

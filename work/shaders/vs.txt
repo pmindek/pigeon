@@ -1,3 +1,5 @@
+uniform mat4 projection;
+
 varying vec2 pos;
 
 void main(void)

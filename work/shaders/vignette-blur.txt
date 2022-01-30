@@ -1,0 +1,76 @@
+uniform sampler2D tex0;
+uniform float inner;
+uniform float outer;
+uniform float amount;
+uniform float blur;
+
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+float rand(uint value)
+{
+	return float(wang_hash(value)) * (1.0 / 4294967296.0);
+}
+
+bool vr = false;
+
+void main(void)
+{
+	vec2 uv =  gl_TexCoord[0].st;	
+	vec4 texel = texture2D(tex0, uv);
+
+	float distance = 0.0;	
+	if (vr)
+	{
+		uv.x = (2.0 * uv.x); float side = sign(uv.x - 1.0);	
+		distance = length(gl_TexCoord[0].st - vec2(0.25 + 0.25 * (1.0 + side), 0.5)) * 2.0;
+	}
+	else
+	{
+		distance = length(gl_TexCoord[0].st - vec2(0.5, 0.5)) * 2.0;
+	}
+	
+	
+	float vig = smoothstep(outer, inner, distance);
+
+  vec4 sample;
+  vec4 accum = 0.0;
+  float sum = 0.0;
+    
+  vec2 offset = vec2(0,0);
+  
+  for (uint i = 0; i < 500; i++)
+  {
+    offset = (-1.0 + 2.0 * vec2(rand(81*i+0), rand(81*i+13))) * (1.0 - vig) * blur;
+
+    vec2 sc = gl_TexCoord[0].st + offset;
+    if (sc.x < 0 || sc.x > 1 || sc.y < 0 || sc.y > 1)
+    {
+       continue;
+    }
+          
+    sample = texture2D(tex0, /*mod(gl_TexCoord[0].st + offset, 1.0)*/sc);
+    accum += sample;
+    sum++;  
+  }
+  accum /= sum;
+
+
+  gl_FragData[0] = vec4(mix(texel.rgb, accum.rgb, amount), texel.a);
+  
+/*
+	vec3 _ = mix(accum.rgb, vigColor, pow(clamp(1.0 - (accum.r + accum.g + accum.b) / 3.0, 0.0, 1.0), 0.5));
+
+	vec3 blurred = mix(accum.rgb, _, (1.0 - vig) * amount);
+
+	vec3 baseColor = mix(_, vec3(_.r * 0.3 + _.g * 0.5 + _.b * 0.2), 1.0);
+
+	gl_FragData[0] = vec4(blurred, color.a);*/
+}

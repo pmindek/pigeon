@@ -42,7 +42,6 @@ VJMini::VJMini(QObject *parent) : QObject(parent)
 
 	foreach (ResourceManager *provider, this->resourceManagers)
 	{
-		connect(provider, SIGNAL(resourceUpdated()), this, SLOT(getCurrentFrame()));
 		connect(provider, SIGNAL(resourceUpdated()), this, SIGNAL(updated()));
 	}
 

@@ -3,7 +3,9 @@
     "path" : "shaders",
     "default files" : ["vs.txt"],
     "files" : { 
-      "shader" : "fs.txt"
+      "vision" : "vision.txt",
+	  "peck" : ["peck_vs.txt", "peck_fs.txt"],
+	  "chroma" : "chroma.txt"
     }
   },
   
@@ -16,6 +18,11 @@
   "textures" : {
     "path" : "textures",
     "files" : {
+		"pigeon0" : "pigeon0.png",
+		"pigeon1" : "pigeon1.png",
+		
+		"bg sidewalk" : "background/sidewalk.png",
+		
 		"noise" : "noise.png"
     }
   }

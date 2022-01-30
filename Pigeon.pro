@@ -11,6 +11,8 @@ SOURCES += \
         canvas.cpp \
         main.cpp \
         mainwindow.cpp \
+	moveable.cpp \
+	one.cpp \
 	util/vjmini/sources/mappingmanager.cpp \
 	util/vjmini/sources/parameter.cpp \
 	util/vjmini/sources/resourcemanager.cpp \
@@ -33,9 +35,20 @@ CONFIG(release, debug|release):LIBS += $$PWD/production/release/nn.lib
 else:LIBS += $$PWD/production/debug/nn.lib
 INCLUDEPATH += $$PWD/libs/nn/src
 
+LIBS += $$PWD/libs/fmod/lib/fmodex_vc.lib
+
 HEADERS += \
+	libs/fmod/inc/fmod.h \
+	libs/fmod/inc/fmod.hpp \
+	libs/fmod/inc/fmod_codec.h \
+	libs/fmod/inc/fmod_dsp.h \
+	libs/fmod/inc/fmod_errors.h \
+	libs/fmod/inc/fmod_memoryinfo.h \
+	libs/fmod/inc/fmod_output.h \
 	canvas.h \
 	mainwindow.h \
+	moveable.h \
+	one.h \
 	util/nn_global.h \
 	util/vjmini/sources/mappingmanager.h \
 	util/vjmini/sources/parameter.h \

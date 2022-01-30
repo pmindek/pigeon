@@ -1,0 +1,90 @@
+#version 330
+
+uniform sampler2D tex0;
+uniform vec2 size;
+uniform float time;
+
+varying vec2 uv;
+varying vec4 color;
+
+layout(location = 0) out vec4 output;
+
+uniform vec4 params;
+
+void main()
+{
+	float interval = params[0];
+	
+	//time = 0.5;
+	
+	interval = 200.0;
+	
+	//output = vec4(interval,0,0,1); return;
+	
+	
+	float _time0 = mod((time * 200.0) / 1000.0, interval);
+	float _time1 = mod((time * 200.0 - 30) / 1000.0, interval);
+	
+	
+	float a0 = 0.0;
+	float a1 = 0.0;
+	
+	float l = 0.08;
+	
+	if (_time0 < l)
+	{
+		a0 = pow(_time0 / l, 0.1);
+	}
+	else if (_time0 < l * 2.0)
+	{
+		a0 = pow(1.0 - (_time0 - l) / l, 0.5);
+	}
+	
+	if (_time1 < l)
+	{
+		a1 = pow(_time1 / l, 0.1);
+	}
+	else if (_time1 < l * 2.0)
+	{
+		a1 = pow(1.0 - (_time1 - l) / l, 0.5);
+	}
+	
+	
+	
+	vec4 c = vec4(0.0);
+	float w = 0.0;
+	
+	for (float i = 0; i < 10; i++)
+	{	
+		float angle = mix(a0, a1, i / 10.0);
+		
+		angle *= 0.5;
+		angle *= 3.141592654;
+		
+		vec2 uv0 = uv - vec2(0.5);
+		
+		vec2 _uv = vec2(
+			uv0.x * cos(angle) - uv0.y * sin(angle),
+			uv0.y * cos(angle) + uv0.x * sin(angle)	
+		) + vec2(0.5);
+		
+		vec4 sample;
+		if (_uv.x < 0.0 || _uv.x >= 1.0 ||
+			_uv.y < 0.0 || _uv.y >= 1.0)
+		{
+			sample = vec4(0.0);
+		}
+		else
+		{
+			sample = texture2D(tex0, _uv);
+		}
+		
+		c += sample;
+		w += 1.0;
+	}
+	
+	c /= w;
+	
+	output = c * color;
+}
+
