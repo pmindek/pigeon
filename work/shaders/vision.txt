@@ -2,7 +2,7 @@ uniform sampler2D tex0;
 float inner = 0.0;
 float outer = 0.7;
 float amount = 1.0;
-uniform vec3 color;
+vec3 color;
 
 uniform float run;
 
@@ -27,6 +27,10 @@ float blur = 0.05;
 bool vr = false;
 void main(void)
 {
+	//run = 0.2;
+	
+	color = vec3(0.0,0.02,0.08);
+	
 	inner = mix(0.17, 0.2, run);
 	outer = mix(0.72, 2.5, run);
 	

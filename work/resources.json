@@ -5,6 +5,7 @@
     "files" : { 
       "vision" : "vision.txt",
 	  "peck" : ["peck_vs.txt", "peck_fs.txt"],
+	  "healthbar" : ["peck_vs.txt", "healthbar_fs.txt"],
 	  "chroma" : "chroma.txt"
     }
   },
@@ -20,6 +21,9 @@
     "files" : {
 		"pigeon0" : "pigeon0.png",
 		"pigeon1" : "pigeon1.png",
+
+		"healthbar-shadow" : "healthbar-shadow.png",
+		"healthbar" : "healthbar.png",
 
 		"crumb0" : "crumb0.png",
 		"crumb1" : "crumb1.png",

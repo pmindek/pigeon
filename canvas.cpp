@@ -8,7 +8,9 @@ Canvas::Canvas(QWidget *parent) : QOpenGLWidget(parent)
 
 Canvas::~Canvas()
 {
-	FMOD_Sound_Release(sound);
+	FMOD_Sound_Release(songCalm);
+	FMOD_Sound_Release(songBeat);
+
 	FMOD_System_Close(system);
 	FMOD_System_Release(system);
 
@@ -30,7 +32,7 @@ void Canvas::initializeGL()
 
 	this->vj->loadScript("script.json");
 
-	this->post //<< this->vj->shader("vision")
+	this->post << this->vj->shader("vision")
 			   << this->vj->shader("chroma")
 				  ;
 
@@ -62,16 +64,37 @@ void Canvas::initializeGL()
 
 
 	//sound
-	channel = 0;
+	channelCalm = 0;
+	channelBeat = 0;
+	channelArp = 0;
+	noteChannel = 0;
 
 	FMOD_System_Create(&system);
 	FMOD_System_Init(system, 5, FMOD_INIT_NORMAL, NULL);
 
 
-	/*FMOD_System_CreateSound(system, "high.wav", FMOD_SOFTWARE, 0, &highSound);
-	FMOD_Sound_SetMode(highSound, FMOD_LOOP_OFF);
+	//notes
 
-	FMOD_System_CreateSound(system, "hit.wav", FMOD_SOFTWARE, 0, &hitSound);
+	QStringList noteNames;
+	noteNames << "c" << "cs" << "d" << "ds" << "e" << "f" << "fs" << "g" << "gs" << "a" << "as" << "b";
+
+	QStringList noteModifiers;
+	noteModifiers << "" << "-";
+
+	for (int j = 0; j < 2; j++)
+	{
+		for (int i = 0; i < 12; i++)
+		{
+			int noteId = 12 * j + i;
+
+			FMOD_System_CreateSound(system, ("music/" + noteModifiers[j] + noteNames[i] + ".wav").toLatin1(), FMOD_SOFTWARE, 0, &notes[noteId]);
+			FMOD_Sound_SetMode(notes[noteId], FMOD_LOOP_OFF);
+		}
+	}
+
+
+
+	/*FMOD_System_CreateSound(system, "hit.wav", FMOD_SOFTWARE, 0, &hitSound);
 	FMOD_Sound_SetMode(hitSound, FMOD_LOOP_OFF);
 
 	FMOD_System_CreateSound(system, "hoop.wav", FMOD_SOFTWARE, 0, &hoopSound);
@@ -83,19 +106,35 @@ void Canvas::initializeGL()
 	FMOD_System_CreateSound(system, "again.wav", FMOD_SOFTWARE, 0, &againSound);
 	FMOD_Sound_SetMode(againSound, FMOD_LOOP_OFF);*/
 
-	FMOD_System_CreateStream(system, "music/pigeon.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &sound);
+	FMOD_System_CreateStream(system, "music/pigeon-calm.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songCalm);
+	FMOD_System_CreateStream(system, "music/pigeon-beat.wav", FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songBeat);
+	FMOD_System_CreateStream(system, "music/pigeon-arp.wav",  FMOD_SOFTWARE | FMOD_LOOP_NORMAL | FMOD_2D, 0, &songArp);
 
 
 	FMOD_System_CreateSoundGroup(system, "All", &soundgroup);
-	FMOD_Sound_SetSoundGroup(sound, soundgroup);
+	FMOD_Sound_SetSoundGroup(songCalm, soundgroup);
+	FMOD_Sound_SetSoundGroup(songBeat, soundgroup);
+	FMOD_Sound_SetSoundGroup(songArp, soundgroup);
+
+	for (int i = 0; i < 12; i++)
+	{
+		FMOD_Sound_SetSoundGroup(notes[i], soundgroup);
+	}
+
 	/*FMOD_Sound_SetSoundGroup(highSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(hitSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(hoopSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(creepSound, soundgroup);
 	FMOD_Sound_SetSoundGroup(againSound, soundgroup);*/
 
+	FMOD_Channel_SetVolume(channelBeat, 0.0);
+	FMOD_System_Update(system);
+	FMOD_Channel_SetVolume(channelArp, 0.0);
+	FMOD_System_Update(system);
 
-	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, sound, 0, &channel);
+	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songCalm, 0, &channelCalm);
+	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songBeat, 0, &channelBeat);
+	FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, songArp, 0, &channelArp);
 
 
 	//FMOD_SoundGroup_SetVolume(soundgroup, 0.0);
@@ -104,6 +143,8 @@ void Canvas::initializeGL()
 	time.start();
 
 	this->offset = 0.0;
+	health = 0.0;
+	addedHealth = 0.0;
 }
 
 void Canvas::resizeGL(int width, int height)
@@ -142,14 +183,32 @@ void Canvas::resizeGL(int width, int height)
 
 void Canvas::paintGL()
 {
-	int t = time.elapsed();
+	qint64 t = time.elapsed();
 
-	handleMovement();
+	handleMovement(t);
+
+
+	FMOD_Channel_SetVolume(channelArp, pow(1.0 - this->health, 3.0));
+
+	if (health > 0.5)
+	{
+		FMOD_Channel_SetVolume(channelBeat, 0.0);
+	}
+	else if (health > 0.4)
+	{
+		FMOD_Channel_SetVolume(channelBeat, 1.0 - (health - 0.4) / 0.1);
+	}
+	else
+	{
+		FMOD_Channel_SetVolume(channelBeat, 1.0);
+	}
+
+	FMOD_System_Update(system);
+
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(-0.89, 16.89, 10.0, 0.0, 0.0, 1.0);
-	projection.ortho(-0.89, 16.89, 10.0, 0.0, 0.0, 1.0);
 	//glLoadMatrixf(this->projection.data());
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -202,9 +261,9 @@ void Canvas::paintGL()
 		qreal y = 9.0;
 		qreal s = this->crumbs[i].getSize(t) / 2.0;
 
-		if (this->crumbs[i].isInRange(pigeon->getX()))
+		if (this->crumbs[i].isInRange(pigeon->getX(), pigeon->isRight()))
 		{
-			glColor4f(1.0, 0.0, 0.0, 1.0);
+			glColor4f(1.0, 0.9, 0.9, 1.0);
 		} else
 		{
 			glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -252,10 +311,8 @@ void Canvas::paintGL()
 
 	vj->shader("peck")->release();
 
-
-
-
 	vj->nn->fbo("main")->release();
+
 
 
 
@@ -279,7 +336,6 @@ void Canvas::paintGL()
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	this->projection.setToIdentity();
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	this->modelview.setToIdentity();
@@ -304,7 +360,7 @@ void Canvas::paintGL()
 			shader->getShader()->setUniformValue("run", (GLfloat) this->run);
 			break;
 		case 1:
-			shader->getShader()->setUniformValue("time", t);
+			shader->getShader()->setUniformValue("time", (uint) t);
 			shader->getShader()->setUniformValue("amount", 12.0f);
 			break;
 		}
@@ -340,23 +396,74 @@ void Canvas::paintGL()
 	glEnd();
 
 
+	//healthbar
+	qreal healthbarSize = 10;
+
+	glBindTexture(GL_TEXTURE_2D, this->vj->texture("healthbar-shadow"));
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0, 1.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0);
+		glTexCoord2f(1.0, 1.0); glVertex2f(8.0 + healthbarSize / 2.0, 1.0);
+		glTexCoord2f(1.0, 0.0); glVertex2f(8.0 + healthbarSize / 2.0, 1.0 + healthbarSize / 8.0);
+		glTexCoord2f(0.0, 0.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0 + healthbarSize / 8.0);
+	glEnd();
+
+	vj->shader("healthbar")->bind();
+	modelview.setToIdentity();
+	vj->shader("healthbar")->getShader()->setUniformValue("modelview", modelview);
+	vj->shader("healthbar")->getShader()->setUniformValue("projection", projection);
+	vj->shader("healthbar")->getShader()->setUniformValue("health", (GLfloat) health);
+
+	glBindTexture(GL_TEXTURE_2D, this->vj->texture("healthbar"));
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0, 1.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0);
+		glTexCoord2f(1.0, 1.0); glVertex2f(8.0 + healthbarSize / 2.0, 1.0);
+		glTexCoord2f(1.0, 0.0); glVertex2f(8.0 + healthbarSize / 2.0, 1.0 + healthbarSize / 8.0);
+		glTexCoord2f(0.0, 0.0); glVertex2f(8.0 - healthbarSize / 2.0, 1.0 + healthbarSize / 8.0);
+	glEnd();
+	vj->shader("healthbar")->release();
+
+
 
 	//vj->shader("shader")->release();
 
 	offset = -pigeon->getX() + 8.0;
+
+	getCurrentNote();
 }
 
+int Canvas::getCurrentNote()
+{
+	uint pos;
+	FMOD_Channel_GetPosition(channelCalm, &pos, FMOD_TIMEUNIT_MS);
 
-void Canvas::handleMovement()
+	int chord = (pos / 2000) % 8;
+
+	int chords[8 * 3] = {
+		E, G, B,
+		D, FS,A,
+		C, E, G,
+		D, FS,A,
+		D, G, B,
+		D, FS,A,
+		E, A, C,
+		E, G, B
+	};
+
+	return chords[chord * 3 + rand() % 3];
+
+}
+
+void Canvas::handleMovement(qint64 t)
 {
 	qreal tmp = 0;
 
 	qreal tmpX = pigeon->getX();
 
-	qreal runTime;
+	qreal runTime = 0.0;
+
 	if (runLeft > 0)
 	{
-		runTime = (qreal) (time.elapsed() - runLeft);
+		runTime = (qreal) (t - runLeft);
 
 		tmp = runTime / runSpeed;
 
@@ -364,7 +471,7 @@ void Canvas::handleMovement()
 	}
 	if (runRight > 0)
 	{
-		runTime = (qreal) (time.elapsed() - runRight);
+		runTime = (qreal) (t - runRight);
 
 		tmp = runTime / runSpeed;
 
@@ -372,7 +479,7 @@ void Canvas::handleMovement()
 	}
 	if (peck > 0)
 	{
-		tmp = (GLfloat) ((time.elapsed() - peck) / 200.0);
+		tmp = (GLfloat) ((t - peck) / 200.0);
 
 		QEasingCurve e(QEasingCurve::Linear);
 		tmp = e.valueForProgress(tmp);
@@ -387,30 +494,46 @@ void Canvas::handleMovement()
 		if (peck > 0.5 && !ate)
 		{
 			ate = true;
+			bool success = false;
 
 			for (int i = 0; i < this->crumbs.size(); i++)
 			{
-				if (this->crumbs[i].isInRange(pigeon->getX()))
+				if (this->crumbs[i].isInRange(pigeon->getX(), pigeon->isRight()))
 				{
 					this->crumbs.takeAt(i);
+
+					qreal inc = vj->c("health increment").toDouble();
+
+					this->addedHealth += qMin(inc, 1.0 - this->health);
+					success = true;
+
 					break;
 				}
 			}
+
+			FMOD_System_PlaySound(system, FMOD_CHANNEL_FREE, notes[getCurrentNote() + (success ? 0 : DULL)], 0, &noteChannel);
+			FMOD_System_Update(system);
 		}
-		qDebug() << tmp;
 	}
 
-	if (runTime < 1000)
+	if (runTime < 1000 && runTime >= 0)
 	{
 		run = runTime / 1000.0;
 	}
 	else
 	{
 		if (runLeft > 0 || runRight > 0)
+		{
 			run = 1.0;
+		}
 		else
+		{
 			run = 0.0;
+		}
 	}
+
+
+	health = qMin(1.0, qMax(0.0, 1.0 - (qreal) t / 10000.0 + addedHealth));
 }
 
 

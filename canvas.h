@@ -15,8 +15,23 @@
 #include "libs/fmod/inc/fmod_errors.h"
 
 
-#define GAME_LENGTH 300
-#define GAME_CRUMB_COUNT 300
+#define C  0
+#define CS 1
+#define D  2
+#define DS 3
+#define E  4
+#define F  5
+#define FS 6
+#define G  7
+#define GS 8
+#define A  9
+#define AS 10
+#define B  11
+
+#define DULL 12
+
+#define GAME_LENGTH 1000
+#define GAME_CRUMB_COUNT 1200
 #define GAME_CRUMB_TYPES 3
 
 //#define SOUNDS_COUNT 1
@@ -34,9 +49,9 @@ public:
 		this->phase = NNU::random() * 2.0 * NN_PI;
 	}
 
-	inline bool isInRange(qreal pigeonPos)
+	inline bool isInRange(qreal pigeonPos, bool right)
 	{
-		return abs(this->position - pigeonPos - vj->c("crumb offset").toDouble() ) < vj->c("crumb range").toDouble();
+		return abs(this->position - pigeonPos - vj->c("crumb offset").toDouble() * (right ? 1.0 : -1.0) ) < vj->c("crumb range").toDouble();
 	}
 
 	VJMini *vj;
@@ -67,7 +82,8 @@ public:
 	~Canvas();
 
 private:
-	void handleMovement();
+	int getCurrentNote();
+	void handleMovement(qint64 t);
 
 protected:
 	void initializeGL();
@@ -106,14 +122,25 @@ protected:
 	VJMini *vj;
 
 	//gameplay
+	qreal health;
+	qreal addedHealth;
 	QList<Crumb> crumbs;
 
 	//sounds
 	FMOD_SYSTEM      *system;
-	FMOD_SOUND       *sound;
-	FMOD_CHANNEL     *channel;
+
+	FMOD_SOUND       *songCalm;
+	FMOD_SOUND       *songBeat;
+	FMOD_SOUND       *songArp;
+
+	FMOD_CHANNEL     *channelCalm;
+	FMOD_CHANNEL     *channelBeat;
+	FMOD_CHANNEL     *channelArp;
+
+	FMOD_CHANNEL     *noteChannel;
 
 	FMOD_SOUND       *sounds[1];
+	FMOD_SOUND       *notes[24];
 
 	FMOD_SOUNDGROUP  *soundgroup;
 

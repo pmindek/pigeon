@@ -2,5 +2,7 @@
   "crumb offset" : 0.7,
   "crumb range" : 0.3,
   
+  "health increment" : 0.06,
+  
   "scenes" : ["pigeon"]  
 }
