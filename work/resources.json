@@ -20,6 +20,11 @@
     "files" : {
 		"pigeon0" : "pigeon0.png",
 		"pigeon1" : "pigeon1.png",
+
+		"crumb0" : "crumb0.png",
+		"crumb1" : "crumb1.png",
+		"crumb2" : "crumb2.png",
+		
 		
 		"bg sidewalk" : "background/sidewalk.png",
 		

@@ -71,7 +71,7 @@ void VJMini::reloadScriptFile(QString fileName)
 
 	this->scriptWatcher->blockSignals(true);
 
-	this->context->makeCurrent(this->onScreenSurface);
+	//this->context->makeCurrent(this->onScreenSurface);
 
 	if (fileName == this->resourcesFileName)
 	{

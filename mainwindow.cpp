@@ -7,9 +7,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	this->canvas = new Canvas(this);
 	this->setCentralWidget(this->canvas);
 
-	canvas->setFocusPolicy(Qt::StrongFocus);
-	canvas->grabKeyboard();
-
 	connect(canvas, SIGNAL(kill()), this, SLOT(close()));
 
 	QTimer *timer = new QTimer(this);

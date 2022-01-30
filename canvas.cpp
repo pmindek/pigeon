@@ -2,7 +2,8 @@
 
 Canvas::Canvas(QWidget *parent) : QOpenGLWidget(parent)
 {
-
+	this->setFocusPolicy(Qt::StrongFocus);
+	this->grabKeyboard();
 }
 
 Canvas::~Canvas()
@@ -10,6 +11,8 @@ Canvas::~Canvas()
 	FMOD_Sound_Release(sound);
 	FMOD_System_Close(system);
 	FMOD_System_Release(system);
+
+	delete this->vj;
 }
 
 void Canvas::initializeGL()
@@ -27,8 +30,36 @@ void Canvas::initializeGL()
 
 	this->vj->loadScript("script.json");
 
-	this->post << this->vj->shader("vision")
-			   << this->vj->shader("chroma");
+	this->post //<< this->vj->shader("vision")
+			   << this->vj->shader("chroma")
+				  ;
+
+
+
+	glDisable(GL_DEPTH_TEST);
+	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+	glEnable(GL_BLEND);
+
+	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_POINT_SMOOTH);
+
+	this->pigeon = new One(this);
+
+	this->modelview.setToIdentity();
+
+	this->projection.setToIdentity();
+	this->projection.ortho(-0.89, 16.89, 10.0, 0.0, 0.0, 1.0);
+
+	//gameplay
+
+	for (int i = 0; i < GAME_CRUMB_COUNT; i++)
+	{
+		this->crumbs << Crumb(NNU::random() * (qreal) GAME_LENGTH, this->vj);
+	}
+
+
+
+
 
 	//sound
 	channel = 0;
@@ -70,21 +101,9 @@ void Canvas::initializeGL()
 	//FMOD_SoundGroup_SetVolume(soundgroup, 0.0);
 	FMOD_System_Update(system);
 
-	glDisable(GL_DEPTH_TEST);
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-	glEnable(GL_BLEND);
-
-	glEnable(GL_LINE_SMOOTH);
-	glEnable(GL_POINT_SMOOTH);
-
-	this->pigeon = new One(this);
-
-	this->modelview.setToIdentity();
-
-	this->projection.setToIdentity();
-	this->projection.ortho(-0.89, 16.89, 10.0, 0.0, 0.0, 1.0);
-
 	time.start();
+
+	this->offset = 0.0;
 }
 
 void Canvas::resizeGL(int width, int height)
@@ -125,7 +144,7 @@ void Canvas::paintGL()
 {
 	int t = time.elapsed();
 
-	handleMoving();
+	handleMovement();
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -170,6 +189,38 @@ void Canvas::paintGL()
 		glTexCoord2f(1.3 - (offset / 17.78) * 2.5, 0.0); glVertex2f(-0.89, 10.0);
 	glEnd();
 
+
+	glEnable(GL_TEXTURE_2D);
+
+
+	//breadcrumbs
+	for (int i = 0; i < this->crumbs.size(); i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, this->vj->texture("crumb" + QString::number(this->crumbs[i].type)));
+
+		qreal x = this->crumbs[i].position + offset;
+		qreal y = 9.0;
+		qreal s = this->crumbs[i].getSize(t) / 2.0;
+
+		if (this->crumbs[i].isInRange(pigeon->getX()))
+		{
+			glColor4f(1.0, 0.0, 0.0, 1.0);
+		} else
+		{
+			glColor4f(1.0, 1.0, 1.0, 1.0);
+		}
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0, 1.0); glVertex2f(x - s, y - s);
+			glTexCoord2f(1.0, 1.0); glVertex2f(x + s, y - s);
+			glTexCoord2f(1.0, 0.0); glVertex2f(x + s, y + s);
+			glTexCoord2f(0.0, 0.0); glVertex2f(x - s, y + s);
+		glEnd();
+	}
+
+
+
+	//draw pigeon
 	GLuint pigeonTextures[2] = {vj->texture("pigeon0"), vj->texture("pigeon1")};
 
 	GLuint pigeonTexture = pigeonTextures[0];
@@ -179,7 +230,6 @@ void Canvas::paintGL()
 		pigeonTexture = pigeonTextures[(t % 300) / 150 ];
 	}
 
-	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, pigeonTexture);
 
 	modelview.setToIdentity();
@@ -208,15 +258,6 @@ void Canvas::paintGL()
 	vj->nn->fbo("main")->release();
 
 
-
-	if (!horizontalStripes)
-	{
-		glViewport((this->width() - w) / 2.0, 0, w, h);
-	}
-	else
-	{
-		glViewport(0, (this->height() - h) / 2.0, w, h);
-	}
 
 	glOrtho(-1, 1, -1, 1, -1, 1);
 
@@ -281,6 +322,15 @@ void Canvas::paintGL()
 		counter++;
 	}
 
+	if (!horizontalStripes)
+	{
+		glViewport((this->width() - w) / 2.0, 0, w, h);
+	}
+	else
+	{
+		glViewport(0, (this->height() - h) / 2.0, w, h);
+	}
+
 	glBindTexture(GL_TEXTURE_2D, counter == 0 ? vj->nn->fbo("main")->texture() : vj->nn->fbo(1 - counter % 2)->texture());
 	glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(-1,1);
@@ -297,7 +347,7 @@ void Canvas::paintGL()
 }
 
 
-void Canvas::handleMoving()
+void Canvas::handleMovement()
 {
 	qreal tmp = 0;
 
@@ -334,6 +384,19 @@ void Canvas::handleMoving()
 		}
 		pigeon->setPeck(tmp);
 
+		if (peck > 0.5 && !ate)
+		{
+			ate = true;
+
+			for (int i = 0; i < this->crumbs.size(); i++)
+			{
+				if (this->crumbs[i].isInRange(pigeon->getX()))
+				{
+					this->crumbs.takeAt(i);
+					break;
+				}
+			}
+		}
 		qDebug() << tmp;
 	}
 
@@ -438,6 +501,7 @@ void Canvas::keyPressEvent(QKeyEvent *e)
 	case Qt::Key_Space:
 		if (peck > 0 || animationMode) break;
 		peck = time.elapsed();
+		ate = false;
 	break;
 
 	default:

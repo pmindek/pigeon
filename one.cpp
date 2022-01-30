@@ -1,8 +1,11 @@
 #include "one.h"
+#include <QtDebug>
 
 One::One(QOpenGLFunctions_2_0 *gl)
 {
 	this->gl = gl;
+	this->x = 0;
+	this->y = 0;
 	this->lastX = 0;
 	this->lastY = 0;
 	this->right = true;
